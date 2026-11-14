@@ -6,7 +6,7 @@ The Canon A-1 (1978) was the first SLR with fully programmed auto exposure, and 
 
 This repository is the record of one complete refurbishment, written up so someone else can follow it:
 
-- **[The guide (PDF)](guide/Canon%20A-1%20Full%20Refurbishment%20Guide%20v1.pdf)**: 121 pages, 11 phases, 92 steps split into small one-action cards, with 255 photos from the actual teardown. Every screw is measured, every wire is labelled, and every step ends with a check and, where things can go wrong, a list of fixes to try in order.
+- **[The guide (PDF)](guide/Canon%20A-1%20Full%20Refurbishment%20Guide%20v1.pdf)**: 123 pages, 11 phases, 92 steps split into small one-action cards, with 255 photos from the actual teardown and seven labelled AI illustrations of general techniques (spanner, C-rings, wire flags, oiling, light seals, parts layout, tester setup). Every screw is measured, every wire is labelled, and every step ends with a check and, where things can go wrong, a list of fixes to try in order.
 - **[The shutter tester](shutter-tester/)**: Arduino firmware and a browser readout page for a two-sensor focal-plane shutter tester. It measures the exposure time on both sides of the frame and the travel time of each curtain, which is what you need to diagnose taper (one side of the frame brighter than the other) and set up the shutter properly. A phone app or a single-sensor tester can't do this.
 
 ![The Canon A-1 used for this guide, as received](images/a1-front.jpg)
@@ -60,7 +60,7 @@ The tester works for any 35 mm camera with a focal-plane shutter. The electronic
 
 ## Sources
 
-The guide cites, but does not reproduce, the Canon A-1 Repair Guide (C12-1601), the A-1 owner's manual, the Canon AE-1 Program service manual (curtain tension) and Eugene Pate's unofficial A-1 CLA notes. All photos, drawings and measurements in this repository are the author's own.
+The guide cites, but does not reproduce, the Canon A-1 Repair Guide (C12-1601), the A-1 owner's manual, the Canon AE-1 Program service manual (curtain tension) and Eugene Pate's unofficial A-1 CLA notes. All photos, drawings and measurements in this repository are the author's own. The seven technique illustrations are AI-generated (ChatGPT), checked against the teardown photos, and marked "AI illustration" in the guide: they show a generic camera, not the A-1.
 
 ## Licence
 
