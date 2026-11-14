@@ -2,8 +2,8 @@ MIT License
 
 Copyright (c) 2026 Sipke Woudstra
 
-This licence covers the shutter tester firmware and readout page in
-shutter-tester/. The guide (guide/) and the photos (images/) are licensed
+This licence covers everything in shutter-tester/: firmware, readout page,
+3D-print files and board drawings. The guide (guide/) and the photos (images/) are licensed
 separately under CC BY-NC-SA 4.0; see guide/LICENSE.md.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

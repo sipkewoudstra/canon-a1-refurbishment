@@ -42,16 +42,21 @@ battery torch → lens mount → shutter → sensor plate (2 × BPW34 photodiode
 |---|---|
 | `shutter-tester/firmware/ShutterTester/ShutterTester.ino` | Arduino sketch for Uno, Nano or Mega 2560. Timestamps every light/dark edge on D2 and D3, reports levels on A0/A1, one JSON line per shot over serial at 115200 baud. |
 | `shutter-tester/shutter-tester.html` | The readout. Open it in **Chrome or Edge** (it uses Web Serial), click *Connect Arduino*. **Calibrate** tab: live levels and the 50 % threshold target per channel. **Measure** tab: exposure at A and B, error in EV, 1st and 2nd curtain travel, taper, history and CSV export. *Simulate* and *Demo shot* work without hardware. |
+| `shutter-tester/sensor-plate/` | The 3D-printed plate that holds the two photodiodes at the film plane. Four STLs: the plain plate (diodes loose in pockets) and the plate with a **comparator bay** on the back for the board, each in a standard 34.6 mm and a looser 34.0 mm height. Plus `sensor_plate.scad` (OpenSCAD, parametric) and `sensor_plate.py` (pure Python, regenerates all four STLs and checks they're watertight). |
+| `shutter-tester/comparator-board/` | **Build sheet (PDF)**: component side, copper side, parts list and bay fit, hole by hole. And five drawings: component side, copper side (mirrored), exploded 3D view, side section and how the board sits in the bay. |
+
+![Comparator board, component side](shutter-tester/comparator-board/1-component-side.png)
 
 **Quick start**
 
-1. Build the circuit (parts list, schematic and step-by-step build in Appendix F of the guide).
-2. Open `ShutterTester.ino` in the Arduino IDE, pick your board and port, upload. Close the serial monitor afterwards.
-3. Open `shutter-tester.html` in Chrome or Edge and click *Connect Arduino*.
-4. Lens off, back open, sensor plate in the film rails, a battery torch shining into the mount. On B, hold the shutter open and set each channel's threshold to 50 % on the Calibrate tab.
-5. Switch to Measure, tick *Binary speeds* for Canon A-series cameras (1/1000 is really 1/1024 s), and fire.
+1. Print the sensor plate: black PLA or PETG, front face down, 0.2 mm layers, no supports. Start with `A-1 sensor plate + comparator bay.stl`; if it doesn't drop between the camera's outer film rails, print the `H34.0 loose` version.
+2. Build the comparator board from the build sheet on 15 × 12-hole perfboard (parts list, schematic and step-by-step build also in Appendix F of the guide). Leave the LM393 out of its socket until the continuity checks pass.
+3. Open `ShutterTester.ino` in the Arduino IDE, pick your board and port, upload. Close the serial monitor afterwards.
+4. Open `shutter-tester.html` in Chrome or Edge and click *Connect Arduino*.
+5. Lens off, back open, sensor plate in the film rails, a battery torch shining into the mount. On B, hold the shutter open and set each channel's threshold to 50 % on the Calibrate tab.
+6. Switch to Measure, tick *Binary speeds* for Canon A-series cameras (1/1000 is really 1/1024 s), and fire.
 
-The tester works for any 35 mm camera with a focal-plane shutter; only the sensor spacing and the binary-speeds setting are A-1-specific.
+The tester works for any 35 mm camera with a focal-plane shutter. The electronics and page are universal; the plate is sized for the A-1's film rails, and `sensor_plate.scad` / `sensor_plate.py` let you change the height, width and sensor spacing for another body.
 
 ## Sources
 
@@ -60,7 +65,7 @@ The guide cites, but does not reproduce, the Canon A-1 Repair Guide (C12-1601), 
 ## Licence
 
 - **Guide (PDF) and photos:** [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Share and adapt it, credit the author, don't sell it, and share changes under the same terms.
-- **Firmware and readout page:** [MIT](LICENSE).
+- **Firmware, readout page, 3D-print files and board drawings:** [MIT](LICENSE).
 
 ## Disclaimer
 
