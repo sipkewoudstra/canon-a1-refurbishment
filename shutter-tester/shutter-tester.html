@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shutter Tester</title>
+<style>
+  :root{
+    --bg:#f6f5f2; --panel:#ffffff; --ink:#1b1b1a; --muted:#6b6a66; --line:#e3e1dc;
+    --ok:#1f8a4c; --warn:#b7791f; --bad:#c0392b; --accent:#2f5d8a; --bar:#e9e6df;
+    --lvl:#2f5d8a; --band:#2f5d8a33; --thr:#c0392b; --tgt:#1f8a4c; --open:#6b6a66; --lit:#f2c94c;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#141413; --panel:#1d1d1b; --ink:#ecebe7; --muted:#9a988f; --line:#2e2d2a;
+      --ok:#4cc27e; --warn:#e0a84a; --bad:#ef6a5b; --accent:#7aa7d6; --bar:#2a2926;
+      --lvl:#7aa7d6; --band:#7aa7d633; --thr:#ef6a5b; --tgt:#4cc27e; --open:#9a988f; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+  header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  h1{font-size:17px;margin:0 10px 0 0;letter-spacing:.2px}
+  .status{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .status.on{color:var(--ok)}
+  button,select,input{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:6px 10px}
+  button{cursor:pointer} button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tabs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .tabs button{border:0;border-radius:0;padding:6px 14px}
+  .tabs button.sel{background:var(--accent);color:#fff}
+  .spacer{flex:1}
+  main{max-width:1280px;margin:0 auto;padding:16px 20px}
+  .view{display:none} .view.sel{display:block}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .measure{display:grid;grid-template-columns:320px 1fr;gap:16px}
+  @media (max-width:900px){ .grid2,.measure{grid-template-columns:1fr} }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 10px}
+  label{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+  label input[type=number]{width:90px;text-align:right}
+  .note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+  .flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  /* calibrate */
+  .chhead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .chhead h3{margin:0;font-size:18px}
+  .lamp{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .lamp i{width:14px;height:14px;border-radius:50%;background:var(--bar);display:inline-block}
+  .lamp.lit{color:var(--ink);border-color:var(--lit)} .lamp.lit i{background:var(--lit);box-shadow:0 0 10px var(--lit)}
+  .chatter{font-family:var(--mono);font-size:12px;color:var(--warn)}
+  .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
+  .num{border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+  .num .k{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .num .k b{width:10px;height:3px;display:inline-block;border-radius:2px}
+  .num .v{font-family:var(--mono);font-size:22px;line-height:1.2}
+  .num .s{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  canvas.gauge{width:100%;height:64px;display:block}
+  .advice{font-size:15px;margin-top:8px;min-height:1.5em;font-weight:500}
+  .advice.ok{color:var(--ok)} .advice.warn{color:var(--warn)} .advice.bad{color:var(--bad)}
+  canvas.strip{width:100%;height:220px;display:block}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend b{width:14px;height:3px;display:inline-block;border-radius:2px}
+  ol.steps{margin:0;padding-left:18px;font-size:14px} ol.steps li{margin:3px 0}
+
+  /* measure */
+  .meter{margin:10px 0}
+  .meter .row{display:flex;justify-content:space-between;font-size:13px;font-family:var(--mono)}
+  .bar{height:10px;background:var(--bar);border-radius:5px;overflow:hidden;margin-top:4px}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bar);margin-right:6px;vertical-align:middle}
+  .dot.lit{background:var(--lit)}
+  .big{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+  .stat{border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+  .stat .k{font-size:12px;color:var(--muted)}
+  .stat .v{font-family:var(--mono);font-size:24px;margin-top:2px}
+  .stat .s{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--mono)}
+  th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th{color:var(--muted);font-weight:500;font-family:inherit;font-size:12px}
+  th:first-child,td:first-child{text-align:left}
+  .tablewrap{overflow-x:auto}
+  .warnbox{font-size:13px;color:var(--warn);margin-top:8px;min-height:1em}
+</style>
+</head>
+<body>
+<header>
+  <h1>Shutter Tester</h1>
+  <button id="connect" class="primary">Connect Arduino</button>
+  <div class="tabs"><button id="tabCal" class="sel">Calibrate</button><button id="tabMeas">Measure</button></div>
+  <span id="status" class="status">not connected</span>
+  <span class="spacer"></span>
+  <button id="sim">Simulate</button>
+</header>
+
+<main>
+<!-- ============================== CALIBRATE ============================== -->
+<section id="viewCal" class="view sel">
+  <div class="card" style="margin-bottom:16px">
+    <div class="flex" style="justify-content:space-between">
+      <ol class="steps">
+        <li>Plate in the camera, lens off, a bright <b>battery</b> torch shining into the mount. Shutter on <b>B</b>, hold it open.</li>
+        <li>Press <b>Capture open level</b> for each channel.</li>
+        <li>Turn the trimmer until the <b style="color:var(--thr)">red threshold</b> sits on the <b style="color:var(--tgt)">green target</b> (50 %).</li>
+        <li>Release the shutter: the lamp must go out. Open again: it must light. No "chatter".</li>
+      </ol>
+      <label style="margin:0">Threshold wires on A2 / A3 <input type="checkbox" id="thrWired"></label>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" id="cardA"></div>
+    <div class="card" id="cardB"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="flex" style="justify-content:space-between">
+      <h2 style="margin:0">Last 8 seconds</h2>
+      <button id="freeze">Freeze</button>
+    </div>
+    <canvas class="strip" id="strip"></canvas>
+    <div class="legend">
+      <span><b style="background:var(--lvl)"></b>level A</span>
+      <span><b style="background:#17becf"></b>level B</span>
+      <span><b style="background:var(--thr)"></b>threshold</span>
+      <span><b style="background:var(--tgt)"></b>target (50 % of open)</span>
+      <span><b style="background:var(--lit)"></b>comparator says “light” (A top strip, B bottom strip)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== MEASURE ============================== -->
+<section id="viewMeas" class="view">
+  <div class="measure">
+    <section>
+      <div class="card">
+        <h2>Setup</h2>
+        <label>Dialled speed <select id="nominal"></select></label>
+        <label>Step to next speed after each shot <input type="checkbox" id="advance" checked></label>
+        <label>Binary speeds (electronic Canon A-series: 1/1000 = 1/1024 s, 15" = 16 s) <input type="checkbox" id="binary" checked></label>
+        <label>Sensor spacing A→B (mm) <input type="number" id="spacing" value="30.48" min="1" step="0.01"></label>
+        <label>Report travel over (mm) <input type="number" id="ref" value="34" min="1" step="0.5"></label>
+        <label>Travel spec (ms over ref) <input type="number" id="spec" value="10.5" min="0" step="0.1"></label>
+        <p class="note">Canon's spec for later A-series bodies is 10.5 ms over 34 mm; the A-1 manual gives none.</p>
+        <div class="flex" style="margin-top:10px"><button id="demo">Demo shot</button></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>Live</h2>
+        <div class="meter"><div class="row"><span><i class="dot" id="dA"></i>A level</span><span id="lA">–</span></div><div class="bar"><i id="bA"></i></div></div>
+        <div class="meter"><div class="row"><span><i class="dot" id="dB"></i>B level</span><span id="lB">–</span></div><div class="bar"><i id="bB"></i></div></div>
+      </div>
+    </section>
+    <section>
+      <div class="card">
+        <h2>Last shot <span id="shotLabel"></span></h2>
+        <div class="big">
+          <div class="stat"><div class="k">Exposure at A</div><div class="v" id="xA">–</div><div class="s" id="xAs">&nbsp;</div></div>
+          <div class="stat"><div class="k">Exposure at B</div><div class="v" id="xB">–</div><div class="s" id="xBs">&nbsp;</div></div>
+          <div class="stat"><div class="k">1st curtain travel</div><div class="v" id="c1">–</div><div class="s" id="c1s">&nbsp;</div></div>
+          <div class="stat"><div class="k">2nd curtain travel</div><div class="v" id="c2">–</div><div class="s" id="c2s">&nbsp;</div></div>
+          <div class="stat"><div class="k">Taper A→B</div><div class="v" id="tp">–</div><div class="s" id="tps">&nbsp;</div></div>
+        </div>
+        <div class="warnbox" id="warn"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="flex" style="justify-content:space-between;margin-bottom:8px">
+          <h2 style="margin:0">History</h2>
+          <div class="flex"><button id="csv">Export CSV</button><button id="clear">Clear</button></div>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>#</th><th>Dialled</th><th>A (ms)</th><th>A err</th><th>B (ms)</th><th>B err</th><th>1st crt (ms)</th><th>2nd crt (ms)</th><th>Edges</th></tr></thead>
+            <tbody id="hist"></tbody>
+          </table>
+        </div>
+        <p class="note">Error in stops = log2(measured / dialled). Green within ⅓ stop, amber within ⅔, red beyond. Travel is scaled from the sensor spacing to the reference width.</p>
+      </div>
+    </section>
+  </div>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const V = c => c * 5 / 1023;                       // ADC counts -> volts (5 V reference)
+const fmtV = c => c == null ? "–" : V(c).toFixed(2) + " V";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ---------------------------------------------------------------- settings
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("st2-"+k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem("st2-"+k, JSON.stringify(v)); }catch(e){} }
+};
+$("thrWired").checked = store.get("thrWired", false);
+$("thrWired").addEventListener("change", () => { store.set("thrWired", $("thrWired").checked); buildCards(); });
+
+// ---------------------------------------------------------------- calibrate state
+const CH = {
+  A: { name:"A", trim:"VR1", pin:"U1 pin 2 (F6)", color:() => css("--lvl"), open: store.get("openA", null),
+       lvl:null, min:null, max:null, thr:null, lit:false, flipLvl:null, flips:0, capture:null },
+  B: { name:"B", trim:"VR2", pin:"U1 pin 6 (I7)", color:() => "#17becf", open: store.get("openB", null),
+       lvl:null, min:null, max:null, thr:null, lit:false, flipLvl:null, flips:0, capture:null },
+};
+const HIST_MS = 8000;
+const hist = [];                 // {t, a, b, ta, tb, da, db}
+let frozen = false;
+
+function buildCards(){
+  for (const k of ["A","B"]){
+    const c = CH[k], wired = $("thrWired").checked;
+    $("card"+k).innerHTML = `
+      <div class="chhead">
+        <h3>Channel ${k}</h3>
+        <span class="lamp" id="lamp${k}"><i></i><span id="lampT${k}">DARK</span></span>
+        <span class="chatter" id="chat${k}"></span>
+      </div>
+      <div class="nums">
+        <div class="num"><div class="k"><b style="background:${c.color()}"></b>Level now</div><div class="v" id="nL${k}">–</div><div class="s" id="nLs${k}">&nbsp;</div></div>
+        <div class="num"><div class="k"><b style="background:var(--open)"></b>Open level</div><div class="v" id="nO${k}">–</div><div class="s">captured</div></div>
+        <div class="num"><div class="k"><b style="background:var(--tgt)"></b>Target 50 %</div><div class="v" id="nT${k}">–</div><div class="s">&nbsp;</div></div>
+        <div class="num"><div class="k"><b style="background:var(--thr)"></b>${wired ? "Threshold" : "Last flip at"}</div><div class="v" id="nH${k}">–</div><div class="s" id="nHs${k}">${wired ? "from the wiper" : "≈ threshold"}</div></div>
+      </div>
+      <canvas class="gauge" id="g${k}"></canvas>
+      <div class="advice" id="adv${k}">&nbsp;</div>
+      <div class="flex" style="margin-top:10px">
+        <button id="cap${k}">Capture open level</button>
+        <button id="clr${k}">Reset</button>
+      </div>
+      <p class="note">${wired
+        ? `Threshold read on ${k==="A"?"A2":"A3"} from ${c.pin}.`
+        : `No threshold wire: the red marker is the level at which the lamp last switched while the light changed <b>slowly</b>. Easiest without the wire: move the torch until Level now sits on the target, then turn ${c.trim} slowly until the lamp just switches. For a live threshold, run a wire from ${c.pin} to ${k==="A"?"A2":"A3"} and tick the box above.`}</p>`;
+    $("cap"+k).onclick = () => startCapture(k);
+    $("clr"+k).onclick = () => { c.open = null; c.flipLvl = null; store.set("open"+k, null); };
+  }
+}
+buildCards();
+
+function startCapture(k){
+  const c = CH[k];
+  c.capture = { until: performance.now() + 1200, v: [] };
+  $("cap"+k).textContent = "Capturing… hold it open";
+}
+
+function onLevels(m, isCal){
+  const now = performance.now();
+  for (const k of ["A","B"]){
+    const c = CH[k], l = k.toLowerCase();
+    const lvl = m[l], lit = !!m["d"+l];
+    // level when the lamp switched; only trusted when the light was changing slowly (a shutter snapping
+    // open or shut jumps straight past the threshold, so its midpoint says nothing about the threshold)
+    if (c.lvl != null && lit !== c.lit && Math.abs(lvl - c.lvl) < 40) c.flipLvl = (c.lvl + lvl) / 2;
+    c.lvl = lvl; c.lit = lit;
+    c.min = isCal ? m[l+"min"] : lvl; c.max = isCal ? m[l+"max"] : lvl;
+    c.thr = m["t"+l] != null ? m["t"+l] : null;
+    c.flips = isCal ? (m["f"+l] || 0) : 0;
+    if (c.capture){
+      (c.capture.v = c.capture.v || []).push(lvl);
+      if (now > c.capture.until){
+        const top = Math.max(...c.capture.v), keep = c.capture.v.filter(v => v >= top * 0.5);   // ignore moments the shutter was shut
+        c.open = Math.round(keep.reduce((p, v) => p + v, 0) / keep.length); store.set("open"+k, c.open);
+        c.capture = null; const b = $("cap"+k); if (b) b.textContent = "Capture open level";
+      }
+    }
+  }
+  if (!frozen){
+    hist.push({ t: now, a: m.a, b: m.b, ta: m.ta, tb: m.tb, da: !!m.da, db: !!m.db });
+    while (hist.length && now - hist[0].t > HIST_MS + 500) hist.shift();
+  }
+  // measure-view meters
+  for (const k of ["A","B"]){
+    const c = CH[k];
+    $("l"+k).textContent = `${c.lvl} · ${fmtV(c.lvl)}`;
+    $("b"+k).style.width = (c.lvl / 1023 * 100).toFixed(1) + "%";
+    $("d"+k).classList.toggle("lit", c.lit);
+  }
+}
+
+// ---------------------------------------------------------------- drawing
+function setupCanvas(cv){
+  const dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+  if (cv.width !== Math.round(r.width*dpr) || cv.height !== Math.round(r.height*dpr)){
+    cv.width = Math.round(r.width*dpr); cv.height = Math.round(r.height*dpr);
+  }
+  const g = cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0);
+  return [g, r.width, r.height];
+}
+
+function drawGauge(k){
+  const c = CH[k], cv = $("g"+k); if (!cv) return;
+  const [g, w, h] = setupCanvas(cv);
+  g.clearRect(0,0,w,h);
+  const L = 18, R = w - 18, x = v => L + (R - L) * v / 1023, y0 = 10, bh = 22;
+  g.fillStyle = css("--bar"); g.fillRect(L, y0, R - L, bh);
+  if (c.lvl != null){
+    g.fillStyle = css("--band"); g.fillRect(x(c.min), y0, Math.max(2, x(c.max) - x(c.min)), bh);   // flicker band
+    g.fillStyle = c.color(); g.fillRect(L, y0 + 6, x(c.lvl) - L, bh - 12);                         // level
+  }
+  const mark = (v, col, dash, lw) => { if (v == null) return; g.strokeStyle = col; g.lineWidth = lw; g.setLineDash(dash);
+    g.beginPath(); g.moveTo(x(v), y0 - 6); g.lineTo(x(v), y0 + bh + 6); g.stroke(); g.setLineDash([]); };
+  mark(c.open, css("--open"), [], 2);
+  if (c.open != null) mark(c.open / 2, css("--tgt"), [5,3], 2.5);
+  const thr = $("thrWired").checked ? c.thr : c.flipLvl;
+  mark(thr, css("--thr"), [], 3);
+  // scale
+  g.fillStyle = css("--muted"); g.font = "11px " + css("--mono"); g.textAlign = "center";
+  for (let v = 0; v <= 5; v++){ const xx = x(v * 1023 / 5); g.fillRect(xx, y0 + bh + 8, 1, 4); g.fillText(v + " V", xx, y0 + bh + 24); }
+}
+
+function drawStrip(){
+  const cv = $("strip"); const [g, w, h] = setupCanvas(cv);
+  g.clearRect(0,0,w,h);
+  const now = frozen && hist.length ? hist[hist.length-1].t : performance.now();
+  const L = 40, R = w - 8, T = 18, B = h - 22;
+  const x = t => R - (now - t) / HIST_MS * (R - L), y = v => B - (B - T) * v / 1023;
+  // grid
+  g.strokeStyle = css("--line"); g.lineWidth = 1; g.fillStyle = css("--muted"); g.font = "11px " + css("--mono"); g.textAlign = "right";
+  for (let v = 0; v <= 5; v++){ const yy = y(v * 1023 / 5); g.beginPath(); g.moveTo(L, yy); g.lineTo(R, yy); g.stroke(); g.fillText(v + " V", L - 6, yy + 4); }
+  g.textAlign = "center"; for (let s = 0; s <= 8; s += 2) g.fillText(s === 0 ? "now" : `-${s} s`, R - s / 8 * (R - L), h - 6);
+  // comparator state strips
+  const strip = (key, yy) => { g.fillStyle = css("--lit");
+    for (let i = 1; i < hist.length; i++) if (hist[i-1][key]) { const x0 = Math.max(L, x(hist[i-1].t)), x1 = x(hist[i].t); if (x1 > L) g.fillRect(x0, yy, x1 - x0 + 0.5, 6); } };
+  strip("da", 2); strip("db", 10);
+  const line = (key, col, dash, lw) => { g.strokeStyle = col; g.lineWidth = lw; g.setLineDash(dash); g.beginPath(); let started = false;
+    for (const p of hist){ if (p[key] == null || x(p.t) < L) continue; const X = x(p.t), Y = y(p[key]); if (!started){ g.moveTo(X, Y); started = true; } else g.lineTo(X, Y); }
+    g.stroke(); g.setLineDash([]); };
+  if ($("thrWired").checked){ line("ta", css("--thr"), [], 1.5); line("tb", css("--thr"), [4,3], 1.5); }
+  for (const k of ["A","B"]) if (CH[k].open != null){ g.strokeStyle = css("--tgt"); g.setLineDash([6,4]); g.lineWidth = 1.5;
+    const yy = y(CH[k].open / 2); g.beginPath(); g.moveTo(L, yy); g.lineTo(R, yy); g.stroke(); g.setLineDash([]); }
+  line("a", CH.A.color(), [], 2); line("b", CH.B.color(), [], 2);
+}
+
+function updateText(){
+  for (const k of ["A","B"]){
+    const c = CH[k]; if (!$("nL"+k)) continue;
+    $("lamp"+k).classList.toggle("lit", c.lit); $("lampT"+k).textContent = c.lit ? "LIGHT" : "DARK";
+    $("nL"+k).textContent = fmtV(c.lvl);
+    $("nLs"+k).textContent = c.lvl == null ? " " : `${c.lvl} · ±${(V(c.max - c.min)/2).toFixed(2)} V`;
+    $("nO"+k).textContent = fmtV(c.open);
+    $("nT"+k).textContent = c.open == null ? "–" : fmtV(c.open / 2);
+    const wired = $("thrWired").checked, thr = wired ? c.thr : c.flipLvl;
+    $("nH"+k).textContent = fmtV(thr);
+    $("chat"+k).textContent = c.flips > 2 ? `chatter: ${c.flips} flips / 40 ms` : "";
+    const adv = $("adv"+k);
+    if (c.lvl == null){ adv.textContent = "Waiting for data…"; adv.className = "advice"; continue; }
+    if (c.open == null){ adv.textContent = "Open the shutter on B with the light on, then press Capture open level."; adv.className = "advice"; continue; }
+    if (V(c.open) < 0.5){ adv.textContent = `Open level only ${fmtV(c.open)}: too little light. Brighter torch, closer, or a bigger R_load.`; adv.className = "advice bad"; continue; }
+    if (thr == null){ adv.textContent = wired ? "No threshold reading: is the wiper wired to " + (k==="A"?"A2":"A3") + "?"
+        : `Move the torch until Level now ≈ ${fmtV(c.open / 2)} (target), then turn ${c.trim} slowly until the lamp just switches.`; adv.className = "advice"; continue; }
+    const target = c.open / 2, err = (thr - target) / c.open;           // as a fraction of the open level
+    if (Math.abs(err) <= 0.04){ adv.textContent = `On target (${(err*100).toFixed(0)} %). ✓`; adv.className = "advice ok"; }
+    else { adv.textContent = `Threshold ${Math.abs(V(thr - target)).toFixed(2)} V ${err > 0 ? "too HIGH: turn " + c.trim + " to lower it" : "too LOW: turn " + c.trim + " to raise it"}.`;
+           adv.className = "advice " + (Math.abs(err) <= 0.15 ? "warn" : "bad"); }
+  }
+}
+
+function frame(){
+  if ($("viewCal").classList.contains("sel")){ drawGauge("A"); drawGauge("B"); drawStrip(); updateText(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+$("freeze").onclick = () => { frozen = !frozen; $("freeze").textContent = frozen ? "Run" : "Freeze"; };
+
+// ---------------------------------------------------------------- tabs / mode
+let mode = "cal";
+function setMode(m){
+  mode = m;
+  $("tabCal").classList.toggle("sel", m === "cal"); $("tabMeas").classList.toggle("sel", m === "meas");
+  $("viewCal").classList.toggle("sel", m === "cal"); $("viewMeas").classList.toggle("sel", m === "meas");
+  sendModeToBoard();
+}
+$("tabCal").onclick = () => setMode("cal");
+$("tabMeas").onclick = () => setMode("meas");
+
+let boardCal = null, fwVersion = null;
+async function send(ch){ if (writer) try{ await writer.write(new TextEncoder().encode(ch)); }catch(e){} }
+function sendModeToBoard(){
+  if (!writer || fwVersion < 2) return;
+  if (mode === "cal" && boardCal !== true) send("c");
+  if (mode === "meas" && boardCal !== false) send("m");
+}
+
+// ---------------------------------------------------------------- measure (shots)
+// [label, marked value, binary value]. The Canon A-1 counts binary speeds from its clock
+// (A-1 manual p.93 §2.3), so compare against the binary column when "Binary speeds" is ticked.
+const SPEEDS = [
+  ["1/1000",1/1000,1/1024],["1/500",1/500,1/512],["1/250",1/250,1/256],["1/125",1/125,1/128],["1/60",1/60,1/64],
+  ["1/30",1/30,1/32],["1/15",1/15,1/16],["1/8",1/8,1/8],["1/4",1/4,1/4],["1/2",1/2,1/2],["1\"",1,1],
+  ["2\"",2,2],["4\"",4,4],["8\"",8,8],["15\"",15,16],["30\"",30,32],["B",null,null]
+];
+$("binary").checked = store.get("binary", true);
+$("binary").addEventListener("change", () => store.set("binary", $("binary").checked));
+const nominalSel = $("nominal");
+SPEEDS.forEach(([label],i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=label; nominalSel.appendChild(o); });
+for (const k of ["spacing","ref","spec"]){ const v = store.get(k, null); if (v) $(k).value = v; $(k).addEventListener("change", () => store.set(k, $(k).value)); }
+const shots = [];
+function fmtMs(us){ return us==null ? "–" : (us/1000).toFixed(us<10000?3:1); }
+function fmtFrac(us){ if (us==null) return ""; const s = us/1e6; return s >= 0.75 ? s.toFixed(2)+" s" : "1/"+Math.round(1/s); }
+function stopsErr(us, nominalS){ return (us==null||!nominalS) ? null : Math.log2((us/1e6)/nominalS); }
+function cls(e){ if (e==null) return ""; const a=Math.abs(e); return a<=1/3?"ok":a<=2/3?"warn":"bad"; }
+function fmtStops(e){ return e==null ? "–" : (e>=0?"+":"")+e.toFixed(2)+" EV"; }
+function analyse(m){
+  const exp = (on,off) => (on>=0 && off>=0) ? off-on : null;
+  const xa = exp(m.a_on,m.a_off), xb = exp(m.b_on,m.b_off);
+  const spacing = parseFloat($("spacing").value)||30.48, ref = parseFloat($("ref").value)||34;
+  const scale = ref/spacing;
+  const t1 = (m.a_on>=0 && m.b_on>=0) ? (m.b_on-m.a_on) : null;
+  const t2 = (m.a_off>=0 && m.b_off>=0) ? (m.b_off-m.a_off) : null;
+  const idx = parseInt(nominalSel.value), label = SPEEDS[idx][0], nominalS = SPEEDS[idx][$("binary").checked ? 2 : 1];
+  return { n:m.n, label, nominalS, xa, xb, t1, t2, scale, ea:m.ea, eb:m.eb,
+    erA: stopsErr(xa,nominalS), erB: stopsErr(xb,nominalS), taper: (xa&&xb) ? Math.log2(xb/xa) : null };
+}
+function show(r){
+  $("shotLabel").textContent = `#${r.n} · dialled ${r.label}`;
+  $("xA").textContent = fmtMs(r.xa)+" ms"; $("xA").className="v "+cls(r.erA);
+  $("xAs").textContent = r.xa==null ? "no light seen" : `${fmtFrac(r.xa)} · ${fmtStops(r.erA)}`;
+  $("xB").textContent = fmtMs(r.xb)+" ms"; $("xB").className="v "+cls(r.erB);
+  $("xBs").textContent = r.xb==null ? "no light seen" : `${fmtFrac(r.xb)} · ${fmtStops(r.erB)}`;
+  const spec = parseFloat($("spec").value)||0, ref=$("ref").value;
+  const trav = (t,el,sub)=>{
+    if (t==null){ $(el).textContent="–"; $(sub).textContent="needs both sensors"; return; }
+    const ms = Math.abs(t)/1000*r.scale;
+    $(el).textContent = ms.toFixed(2)+" ms";
+    $(el).className = "v " + (spec ? (Math.abs(ms-spec)/spec<=0.1?"ok":Math.abs(ms-spec)/spec<=0.2?"warn":"bad") : "");
+    $(sub).textContent = `over ${ref} mm · ${t>=0?"A→B":"B→A"}`;
+  };
+  trav(r.t1,"c1","c1s"); trav(r.t2,"c2","c2s");
+  $("tp").textContent = r.taper==null ? "–" : fmtStops(r.taper);
+  $("tp").className = "v " + (r.taper==null?"":Math.abs(r.taper)<=0.25?"ok":Math.abs(r.taper)<=0.5?"warn":"bad");
+  $("tps").textContent = r.taper==null ? "needs both sensors" : "B vs A (uneven curtain speed)";
+  const w=[];
+  if (r.ea>2 || r.eb>2) w.push(`Extra edges (A ${r.ea}, B ${r.eb}): flicker or a threshold too close to the noise. Re-check on the Calibrate tab.`);
+  if (r.nominalS && r.nominalS<=1/500 && r.xa!=null && r.xa>3*r.nominalS*1e6) w.push("Fast speed reads very long: is the threshold at ~50 %?");
+  $("warn").textContent = w.join(" ");
+}
+function addRow(r){
+  shots.push(r);
+  const tr=document.createElement("tr");
+  const t1 = r.t1==null?"–":(Math.abs(r.t1)/1000*r.scale).toFixed(2);
+  const t2 = r.t2==null?"–":(Math.abs(r.t2)/1000*r.scale).toFixed(2);
+  tr.innerHTML = `<td>${r.n}</td><td>${r.label}</td><td>${fmtMs(r.xa)}</td><td class="${cls(r.erA)}">${fmtStops(r.erA)}</td>`+
+    `<td>${fmtMs(r.xb)}</td><td class="${cls(r.erB)}">${fmtStops(r.erB)}</td><td>${t1}</td><td>${t2}</td><td>${r.ea}/${r.eb}</td>`;
+  $("hist").prepend(tr);
+}
+function handleShot(m){
+  const r = analyse(m); show(r); addRow(r);
+  if ($("advance").checked){ const i=parseInt(nominalSel.value); if (i < SPEEDS.length-2) nominalSel.value = i+1; }
+}
+
+// ---------------------------------------------------------------- serial
+function handleLine(line){
+  line=line.trim(); if (!line.startsWith("{")) return;
+  let m; try{ m=JSON.parse(line); }catch(e){ return; }
+  if (m.t==="shot") handleShot(m);
+  else if (m.t==="lvl") onLevels(m, false);
+  else if (m.t==="cal") onLevels(m, true);
+  else if (m.t==="mode") { boardCal = !!m.cal; sendModeToBoard(); }
+  else if (m.t==="hello") {
+    fwVersion = m.v; boardCal = false;
+    $("status").textContent = "connected · firmware v"+m.v + (m.v < 2 ? " (upload v2 for fast calibration)" : "");
+    $("status").classList.add("on"); sendModeToBoard();
+  }
+}
+let port=null, reader=null, writer=null;
+$("connect").addEventListener("click", async ()=>{
+  if (!("serial" in navigator)){ $("status").textContent="Web Serial needs Chrome or Edge (open this file directly)"; return; }
+  try{
+    if (port){ await disconnect(); return; }
+    stopSim();
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate:115200 });
+    $("status").textContent="connected · waiting for the board…"; $("status").classList.add("on"); $("connect").textContent="Disconnect";
+    writer = port.writable.getWriter();
+    readLoop();
+    setTimeout(() => { if (fwVersion == null){ fwVersion = 2; boardCal = null; sendModeToBoard(); } }, 2500);  // missed hello (no reset)
+  }catch(e){ $("status").textContent="error: "+e.message; port=null; }
+});
+async function disconnect(){
+  try{ if (reader) await reader.cancel(); }catch(e){}
+  try{ if (writer) writer.releaseLock(); }catch(e){}
+  try{ await port.close(); }catch(e){}
+  port=null; reader=null; writer=null; fwVersion=null; boardCal=null;
+  $("status").textContent="not connected"; $("status").classList.remove("on"); $("connect").textContent="Connect Arduino";
+}
+async function readLoop(){
+  const dec = new TextDecoderStream();
+  port.readable.pipeTo(dec.writable).catch(()=>{});
+  reader = dec.readable.getReader();
+  let buf="";
+  try{
+    while(true){
+      const {value,done} = await reader.read();
+      if (done) break;
+      buf += value; let i;
+      while((i=buf.indexOf("\n"))>=0){ handleLine(buf.slice(0,i)); buf=buf.slice(i+1); }
+    }
+  }catch(e){ $("status").textContent="read error: "+e.message; }
+}
+
+// ---------------------------------------------------------------- simulation (no hardware)
+let simTimer = null, simT = 0;
+function stopSim(){ if (simTimer){ clearInterval(simTimer); simTimer = null; $("sim").textContent = "Simulate"; } }
+$("sim").onclick = () => {
+  if (simTimer) return stopSim();
+  $("sim").textContent = "Stop simulation";
+  const sim = { thrA: 520, thrB: 330 };
+  simTimer = setInterval(() => {
+    simT += 40;
+    const open = Math.floor(simT / 2500) % 2 === 0;                 // shutter opens/closes every 2.5 s
+    const a = (open ? 610 : 6) + Math.round((Math.random()-0.5)*14), b = (open ? 560 : 5) + Math.round((Math.random()-0.5)*14);
+    sim.thrA += (300 - sim.thrA) * 0.004; sim.thrB += (280 - sim.thrB) * 0.004;   // "turning the trimmer"
+    handleLine(JSON.stringify({ t:"cal", a, b, amin:a-8, amax:a+8, bmin:b-8, bmax:b+8,
+      ta:Math.round(sim.thrA), tb:Math.round(sim.thrB), da: a > sim.thrA ? 1 : 0, db: b > sim.thrB ? 1 : 0, fa:0, fb:0 }));
+  }, 40);
+};
+
+// demo shot (measure tab)
+let demoN=0;
+$("demo").addEventListener("click", ()=>{
+  const [ , s] = SPEEDS[parseInt(nominalSel.value)];
+  const exp = (s||0.5)*1e6*(1+(Math.random()-0.5)*0.25);
+  const spacing = parseFloat($("spacing").value)||30.48;
+  const v1 = 34/10.5, v2 = 34/10.9;
+  const t1 = spacing/v1*1000, t2 = spacing/v2*1000;
+  handleShot({t:"shot", n:++demoN, a_on:0, a_off:Math.round(exp), b_on:Math.round(t1), b_off:Math.round(exp+t2), ea:2, eb:2});
+});
+$("clear").addEventListener("click", ()=>{ shots.length=0; $("hist").innerHTML=""; });
+$("csv").addEventListener("click", ()=>{
+  // curtain1_ms/curtain2_ms are scaled to "Report travel over" (default 34 mm), unsigned.
+  // c1_raw_ms/c2_raw_ms are the signed A→B times over the sensor spacing (negative = B saw it first).
+  const rows=[["shot","dialled","exp_A_ms","err_A_EV","exp_B_ms","err_B_EV","curtain1_ms","curtain2_ms","edges_A","edges_B","nominal_ms","c1_raw_ms","c2_raw_ms","ref_mm"]];
+  for (const r of shots) rows.push([r.n,r.label,r.xa==null?"":(r.xa/1000).toFixed(3),r.erA==null?"":r.erA.toFixed(3),
+    r.xb==null?"":(r.xb/1000).toFixed(3),r.erB==null?"":r.erB.toFixed(3),
+    r.t1==null?"":(Math.abs(r.t1)/1000*r.scale).toFixed(3),r.t2==null?"":(Math.abs(r.t2)/1000*r.scale).toFixed(3),r.ea,r.eb,
+    r.nominalS==null?"":(r.nominalS*1000).toFixed(4),r.t1==null?"":(r.t1/1000).toFixed(3),r.t2==null?"":(r.t2/1000).toFixed(3),(r.scale*parseFloat($("spacing").value||30.48)).toFixed(2)]);
+  const blob = new Blob([rows.map(r=>r.join(",")).join("\n")],{type:"text/csv"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="shutter-test-"+new Date().toISOString().slice(0,16).replace(/[:T]/g,"-")+".csv"; a.click();
+});
+</script>
+</body>
+</html>
