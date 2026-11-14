@@ -60,7 +60,7 @@ The tester works for any 35 mm camera with a focal-plane shutter. The electronic
 
 ## Sources
 
-The guide cites, but does not reproduce, the Canon A-1 Repair Guide (C12-1601), the A-1 owner's manual, the Canon AE-1 Program service manual (curtain tension) and Eugene Pate's unofficial A-1 CLA notes. All photos, drawings and measurements in this repository are the author's own. The nine illustrations are AI-generated (ChatGPT), checked against the teardown photos, and marked "AI illustration" in the guide: they show a generic camera, not the A-1.
+The guide cites, but does not reproduce, the Canon A-1 Repair Guide (C12-1601), the A-1 owner's manual, the Canon AE-1 Program service manual (curtain tension) and Eugene Pate's unofficial A-1 CLA notes. All photos, drawings and measurements in this repository are the author's own. The nine illustrations are AI-generated (ChatGPT), checked against the teardown photos, and marked "AI illustration" in the guide. Seven show a generic camera; two are redrawn from the author's photos and say so.
 
 ## Licence
 
